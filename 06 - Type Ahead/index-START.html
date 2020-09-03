@@ -22,39 +22,50 @@
         .then((blob) => blob.json())
         .then((data) => cities.push(...data));
 
-      function findMatches(wordToMatch, cities) {
-        return cities.filter((place) => {
-          const regex = new RegExp(wordToMatch, "gi");
-          return place.city.match(regex) || place.country.match(regex);
-        });
+      async function findMatches(wordToMatch, cities) {
+        return await cities
+          .filter((place) => {
+            const regex = new RegExp(wordToMatch, "gi");
+            return place.city.match(regex) || place.country.match(regex);
+          })
+          .slice(0, 50);
       }
       function numberWithCommas(x) {
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       }
+      let lat, lng;
       function displayMatches() {
         if (this.value.length >= 2) {
-          const matchArray = findMatches(this.value, cities);
-          const html = matchArray
-            .map((place) => {
-              const regex = new RegExp(this.value, "gi");
-              const cityName = place.city.replace(
-                regex,
-                `<span class="hl">${this.value}</span>`
-              );
-              const countryName = place.country.replace(
-                regex,
-                `<span class="hl">${this.value}</span>`
-              );
-              return `<li>
+          const foundCities = findMatches(this.value, cities);
+          foundCities.then((matchArray) => {
+            if (matchArray.length > 0) {
+              lat = matchArray[0].lat;
+              lng = matchArray[0].lng;
+              console.log(lat);
+            }
+
+            const html = matchArray
+              .map((place) => {
+                const regex = new RegExp(this.value, "gi");
+                const cityName = place.city.replace(
+                  regex,
+                  `<span class="hl">${this.value}</span>`
+                );
+                const countryName = place.country.replace(
+                  regex,
+                  `<span class="hl">${this.value}</span>`
+                );
+                return `<li>
                       <span class="name">${cityName}, ${countryName}</span>
                       <span class="population">${numberWithCommas(
                         place.population
                       )}</span>
                     </li>
                   `;
-            })
-            .join("");
-          suggestions.innerHTML = html;
+              })
+              .join("");
+            suggestions.innerHTML = html;
+          });
         } else if (this.value.length === 0) {
           suggestions.innerHTML = ` <li>Filter for a city</li><li>or a country</li>`;
         }
